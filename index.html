@@ -16,6 +16,10 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
 <body>
     <!-- Login Screen -->
@@ -52,37 +56,38 @@
     <div id="appScreen" class="screen">
         <div class="header">
             <h2 id="welcomeUser">Welcome!</h2>
-            <button id="logoutBtn" class="btn-logout">Logout</button>
+            <div class="header-buttons">
+                <button id="changeNameBtn" class="btn-change-name">Change Name</button>
+                <button id="logoutBtn" class="btn-logout">Logout</button>
+            </div>
         </div>
         
         <div class="month-nav">
             <button id="prevMonth" class="nav-btn">‹</button>
             <div class="month-info">
                 <div id="currentMonth" class="month-display"></div>
-                <div id="currentDate" class="date-display"></div>
+                <div id="calendar" class="calendar-grid">
+                    <!-- Calendar will be populated by JavaScript -->
+                </div>
             </div>
             <button id="nextMonth" class="nav-btn">›</button>
         </div>
         
         <div class="container">
+            <div class="challenge-description-section">
+                <h3>📋 This Month's Challenge</h3>
+                <div id="challengeDescription" class="challenge-description">
+                    <!-- Challenge description will be populated here -->
+                </div>
+            </div>
+            
             <div class="leaderboard-section">
                 <h3>🏆 Leaderboard</h3>
                 <div id="leaderboardList" class="leaderboard-list">
                     <!-- Leaderboard will be populated here -->
                 </div>
-                <button id="shareDataBtn" class="btn-share">📤 Share My Progress</button>
-                <button id="importDataBtn" class="btn-share">📥 Import Friend's Data</button>
             </div>
             
-            <div class="challenge-section">
-                <h3>Your Challenges</h3>
-                
-                <div id="challengesList">
-                    <!-- Challenges will be dynamically added here -->
-                </div>
-                
-                <button id="addChallengeBtn" class="btn-secondary">+ Add New Challenge</button>
-            </div>
             
             <div class="stats-section">
                 <h3>Your Stats</h3>
@@ -112,6 +117,34 @@
                 </div>
                 
                 <button type="submit" class="btn-primary">Create Challenge</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Daily Workout Entry Modal -->
+    <div id="workoutModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="workoutModalTitle">Log Workout</h3>
+                <button class="close-workout-modal">&times;</button>
+            </div>
+            <form id="workoutForm">
+                <div class="input-group">
+                    <label for="bicepsReps">💪 Biceps Reps</label>
+                    <input type="number" id="bicepsReps" min="0" placeholder="0" value="0">
+                </div>
+                
+                <div class="input-group">
+                    <label for="tricepsReps">💪 Triceps Reps</label>
+                    <input type="number" id="tricepsReps" min="0" placeholder="0" value="0">
+                </div>
+                
+                <div class="workout-total">
+                    <strong>Total Reps: <span id="totalReps">0</span></strong>
+                </div>
+                
+                <button type="submit" class="btn-primary">Save Workout</button>
+                <button type="button" id="deleteWorkout" class="btn-delete-workout">Delete Entry</button>
             </form>
         </div>
     </div>

@@ -1,20 +1,44 @@
 // Configuration
 const GROUP_PASSWORD = 'rivertrout'; // Change this to your desired password
 
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDePHmcbw9obkbpTJ-7dORRLn23MGZzAU4",
+  authDomain: "workout-tracker-f37a4.firebaseapp.com",
+  databaseURL: "https://workout-tracker-f37a4-default-rtdb.firebaseio.com",
+  projectId: "workout-tracker-f37a4",
+  storageBucket: "workout-tracker-f37a4.firebasestorage.app",
+  messagingSenderId: "485150234268",
+  appId: "1:485150234268:web:1f9569d19cd80c3d0c7f59",
+  measurementId: "G-FMPWXTG8C0"
+};
+
+// Initialize Firebase (using compat SDK loaded in HTML)
+let database = null;
+if (typeof firebase !== 'undefined') {
+    firebase.initializeApp(firebaseConfig);
+    database = firebase.database();
+    console.log('Firebase initialized successfully');
+} else {
+    console.warn('Firebase SDK not loaded. Leaderboard will only show local data.');
+}
+
 // State Management
 let currentUser = null;
 let challenges = [];
 let currentMonth = new Date();
 let leaderboardData = [];
+let dailyWorkouts = {}; // Store daily workout data: { 'YYYY-MM-DD': { biceps: 0, triceps: 0 } }
+let selectedDate = null; // Currently selected date for modal
 
 // Initialize App
 document.addEventListener('DOMContentLoaded', () => {
-    initializeApp();
+    initializeWorkoutApp();
     setupEventListeners();
     checkForUpdates();
 });
 
-function initializeApp() {
+function initializeWorkoutApp() {
     // Check if user is already logged in
     const savedUser = localStorage.getItem('currentUser');
     if (savedUser) {
@@ -47,6 +71,12 @@ function setupEventListeners() {
         logoutBtn.addEventListener('click', handleLogout);
     }
     
+    // Change Name Button
+    const changeNameBtn = document.getElementById('changeNameBtn');
+    if (changeNameBtn) {
+        changeNameBtn.addEventListener('click', handleChangeName);
+    }
+    
     // Month Navigation
     const prevMonth = document.getElementById('prevMonth');
     const nextMonth = document.getElementById('nextMonth');
@@ -54,12 +84,6 @@ function setupEventListeners() {
         prevMonth.addEventListener('click', () => navigateMonth(-1));
         nextMonth.addEventListener('click', () => navigateMonth(1));
     }
-    
-    // Share/Import Data
-    const shareBtn = document.getElementById('shareDataBtn');
-    const importBtn = document.getElementById('importDataBtn');
-    if (shareBtn) shareBtn.addEventListener('click', shareData);
-    if (importBtn) importBtn.addEventListener('click', importData);
     
     // Add Challenge Button
     const addChallengeBtn = document.getElementById('addChallengeBtn');
@@ -94,6 +118,39 @@ function setupEventListeners() {
             }
         });
     }
+    
+    // Workout Modal handlers
+    const closeWorkoutModal = document.querySelector('.close-workout-modal');
+    if (closeWorkoutModal) {
+        closeWorkoutModal.addEventListener('click', closeWorkoutModalHandler);
+    }
+    
+    const workoutModal = document.getElementById('workoutModal');
+    if (workoutModal) {
+        workoutModal.addEventListener('click', (e) => {
+            if (e.target.id === 'workoutModal') {
+                closeWorkoutModalHandler();
+            }
+        });
+    }
+    
+    const workoutForm = document.getElementById('workoutForm');
+    if (workoutForm) {
+        workoutForm.addEventListener('submit', saveWorkout);
+    }
+    
+    const deleteWorkoutBtn = document.getElementById('deleteWorkout');
+    if (deleteWorkoutBtn) {
+        deleteWorkoutBtn.addEventListener('click', deleteWorkout);
+    }
+    
+    // Update total reps display when inputs change
+    const bicepsInput = document.getElementById('bicepsReps');
+    const tricepsInput = document.getElementById('tricepsReps');
+    if (bicepsInput && tricepsInput) {
+        bicepsInput.addEventListener('input', updateTotalReps);
+        tricepsInput.addEventListener('input', updateTotalReps);
+    }
 }
 
 function handleLogin(e) {
@@ -116,6 +173,14 @@ function handleLogin(e) {
     // Login successful
     currentUser = username;
     localStorage.setItem('currentUser', username);
+    
+    // Track this user in the all users list
+    let allUsers = JSON.parse(localStorage.getItem('all_users') || '[]');
+    if (!allUsers.includes(username)) {
+        allUsers.push(username);
+        localStorage.setItem('all_users', JSON.stringify(allUsers));
+    }
+    
     loadUserData();
     showScreen('appScreen');
     
@@ -130,6 +195,54 @@ function handleLogout() {
         localStorage.removeItem('currentUser');
         showScreen('loginScreen');
     }
+}
+
+function handleChangeName() {
+    const newName = prompt('Enter your new name:', currentUser);
+    
+    if (!newName || newName.trim().length < 2) {
+        if (newName !== null) {
+            alert('Please enter a valid name (at least 2 characters).');
+        }
+        return;
+    }
+    
+    const trimmedName = newName.trim();
+    
+    if (trimmedName === currentUser) {
+        return; // No change
+    }
+    
+    // Get all month keys for current user
+    const oldUser = currentUser;
+    const allKeys = Object.keys(localStorage);
+    const userDataKeys = allKeys.filter(key => key.startsWith(`challenges_${oldUser}_`));
+    
+    // Copy all monthly data to new username
+    userDataKeys.forEach(key => {
+        const monthKey = key.replace(`challenges_${oldUser}_`, '');
+        const data = localStorage.getItem(key);
+        localStorage.setItem(`challenges_${trimmedName}_${monthKey}`, data);
+        localStorage.removeItem(key);
+    });
+    
+    // Update all users list
+    let allUsers = JSON.parse(localStorage.getItem('all_users') || '[]');
+    const oldUserIndex = allUsers.indexOf(oldUser);
+    if (oldUserIndex >= 0) {
+        allUsers[oldUserIndex] = trimmedName;
+        localStorage.setItem('all_users', JSON.stringify(allUsers));
+    }
+    
+    // Update current user
+    currentUser = trimmedName;
+    localStorage.setItem('currentUser', trimmedName);
+    
+    // Update display
+    document.getElementById('welcomeUser').textContent = `Welcome, ${currentUser}!`;
+    renderLeaderboard();
+    
+    alert(`✅ Name changed to ${trimmedName}!`);
 }
 
 function handleAddChallenge(e) {
@@ -159,12 +272,12 @@ function loadUserData() {
     // Always start with current month
     currentMonth = new Date();
     const monthKey = getMonthKey(currentMonth);
-    const savedData = localStorage.getItem(`challenges_${currentUser}_${monthKey}`);
+    const savedData = localStorage.getItem(`workouts_${currentUser}_${monthKey}`);
     
     if (savedData) {
-        challenges = JSON.parse(savedData);
+        dailyWorkouts = JSON.parse(savedData);
     } else {
-        challenges = [];
+        dailyWorkouts = {};
     }
     
     // Load leaderboard data
@@ -172,20 +285,53 @@ function loadUserData() {
     
     document.getElementById('welcomeUser').textContent = `Welcome, ${currentUser}!`;
     updateMonthDisplay();
-    renderChallenges();
     renderStats();
     renderLeaderboard();
 }
 
 function saveUserData() {
     const monthKey = getMonthKey(currentMonth);
-    localStorage.setItem(`challenges_${currentUser}_${monthKey}`, JSON.stringify(challenges));
+    localStorage.setItem(`workouts_${currentUser}_${monthKey}`, JSON.stringify(dailyWorkouts));
     renderStats();
+    
+    // Sync to Firebase
+    if (database) {
+        const totalScore = calculateMonthlyTotal();
+        const bicepsTotal = Object.values(dailyWorkouts).reduce((sum, day) => sum + (day.biceps || 0), 0);
+        const tricepsTotal = Object.values(dailyWorkouts).reduce((sum, day) => sum + (day.triceps || 0), 0);
+        
+        const userScoreData = {
+            username: currentUser,
+            score: totalScore,
+            biceps: bicepsTotal,
+            triceps: tricepsTotal,
+            workoutDays: Object.keys(dailyWorkouts).length,
+            month: monthKey,
+            lastUpdate: Date.now()
+        };
+        
+        database.ref(`leaderboard/${monthKey}/${sanitizeKey(currentUser)}`).set(userScoreData)
+            .catch(err => console.error('Firebase sync error:', err));
+    }
+    
     updateLeaderboardScore();
+}
+
+function calculateMonthlyTotal() {
+    let total = 0;
+    Object.values(dailyWorkouts).forEach(day => {
+        total += (day.biceps || 0) + (day.triceps || 0);
+    });
+    return total;
 }
 
 function renderChallenges() {
     const container = document.getElementById('challengesList');
+    
+    // Element was removed from UI, skip rendering
+    if (!container) {
+        return;
+    }
     
     if (challenges.length === 0) {
         container.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No challenges yet. Add one to get started!</p>';
@@ -216,28 +362,30 @@ function renderChallenges() {
 function renderStats() {
     const statsContainer = document.getElementById('statsDisplay');
     
-    if (challenges.length === 0) {
-        statsContainer.innerHTML = '<p style="text-align: center; color: #999;">No stats yet.</p>';
-        return;
-    }
+    if (!statsContainer) return;
     
-    const totalCount = challenges.reduce((sum, c) => sum + c.count, 0);
-    const activeChallenges = challenges.length;
-    const completedGoals = challenges.filter(c => c.goal && c.count >= c.goal).length;
+    const totalReps = calculateMonthlyTotal();
+    const workoutDays = Object.keys(dailyWorkouts).length;
+    const bicepsTotal = Object.values(dailyWorkouts).reduce((sum, day) => sum + (day.biceps || 0), 0);
+    const tricepsTotal = Object.values(dailyWorkouts).reduce((sum, day) => sum + (day.triceps || 0), 0);
     
     statsContainer.innerHTML = `
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-value">${totalCount}</div>
+                <div class="stat-value">${totalReps}</div>
                 <div class="stat-label">Total Reps</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">${activeChallenges}</div>
-                <div class="stat-label">Active Challenges</div>
+                <div class="stat-value">${workoutDays}</div>
+                <div class="stat-label">Workout Days</div>
             </div>
             <div class="stat-card">
-                <div class="stat-value">${completedGoals}</div>
-                <div class="stat-label">Goals Reached</div>
+                <div class="stat-value">${bicepsTotal}</div>
+                <div class="stat-label">Biceps</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${tricepsTotal}</div>
+                <div class="stat-label">Triceps</div>
             </div>
         </div>
     `;
@@ -293,6 +441,84 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+function sanitizeKey(str) {
+    // Firebase keys cannot contain . $ # [ ] /
+    return str.replace(/[.\$#\[\]\/]/g, '_');
+}
+
+// Workout Modal Functions
+function openWorkoutModal(dateStr) {
+    selectedDate = dateStr;
+    const modal = document.getElementById('workoutModal');
+    const title = document.getElementById('workoutModalTitle');
+    const bicepsInput = document.getElementById('bicepsReps');
+    const tricepsInput = document.getElementById('tricepsReps');
+    const deleteBtn = document.getElementById('deleteWorkout');
+    
+    // Format date for display
+    const date = new Date(dateStr + 'T00:00:00');
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    title.textContent = date.toLocaleDateString('en-US', options);
+    
+    // Load existing data
+    const workout = dailyWorkouts[dateStr] || { biceps: 0, triceps: 0 };
+    bicepsInput.value = workout.biceps || 0;
+    tricepsInput.value = workout.triceps || 0;
+    
+    // Show/hide delete button
+    const hasData = workout.biceps > 0 || workout.triceps > 0;
+    deleteBtn.style.display = hasData ? 'block' : 'none';
+    
+    updateTotalReps();
+    modal.classList.add('active');
+}
+
+function closeWorkoutModalHandler() {
+    const modal = document.getElementById('workoutModal');
+    modal.classList.remove('active');
+    selectedDate = null;
+}
+
+function updateTotalReps() {
+    const biceps = parseInt(document.getElementById('bicepsReps').value) || 0;
+    const triceps = parseInt(document.getElementById('tricepsReps').value) || 0;
+    document.getElementById('totalReps').textContent = biceps + triceps;
+}
+
+function saveWorkout(e) {
+    e.preventDefault();
+    
+    if (!selectedDate) return;
+    
+    const biceps = parseInt(document.getElementById('bicepsReps').value) || 0;
+    const triceps = parseInt(document.getElementById('tricepsReps').value) || 0;
+    
+    // Save workout data
+    if (biceps > 0 || triceps > 0) {
+        dailyWorkouts[selectedDate] = { biceps, triceps };
+    } else {
+        delete dailyWorkouts[selectedDate];
+    }
+    
+    saveUserData();
+    renderCalendar();
+    closeWorkoutModalHandler();
+}
+
+function deleteWorkout() {
+    if (!selectedDate) return;
+    
+    if (confirm('Delete this workout entry?')) {
+        delete dailyWorkouts[selectedDate];
+        saveUserData();
+        renderCalendar();
+        closeWorkoutModalHandler();
+    }
+}
+
+// Make openWorkoutModal globally accessible
+window.openWorkoutModal = openWorkoutModal;
 
 // PWA Installation
 let deferredPrompt;
@@ -365,25 +591,117 @@ function updateMonthDisplay() {
                        'July', 'August', 'September', 'October', 'November', 'December'];
     
     const monthDisplay = document.getElementById('currentMonth');
-    const dateDisplay = document.getElementById('currentDate');
     const today = new Date();
     
     const monthText = `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
     monthDisplay.textContent = monthText;
     
-    // Show today's date if viewing current month
-    if (getMonthKey(currentMonth) === getMonthKey(today)) {
-        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        dateDisplay.textContent = `Today is ${dayNames[today.getDay()]}, ${monthNames[today.getMonth()]} ${today.getDate()}`;
-    } else {
-        dateDisplay.textContent = 'Historical data';
-    }
+    // Render calendar
+    renderCalendar();
+    
+    // Render challenge description
+    renderChallengeDescription();
     
     // Disable next month button if future month
     const nextBtn = document.getElementById('nextMonth');
     const nextMonth = new Date(currentMonth);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
     nextBtn.disabled = getMonthKey(nextMonth) > getMonthKey(today);
+}
+
+function renderChallengeDescription() {
+    const descriptionDiv = document.getElementById('challengeDescription');
+    if (!descriptionDiv) return;
+    
+    const month = currentMonth.getMonth();
+    const year = currentMonth.getFullYear();
+    
+    // Define challenges for each month
+    const challenges = {
+        0: { // January
+            title: 'Bicep & Tricep Blast',
+            goal: 'Complete an average of <strong>100 reps for biceps</strong> one day, then <strong>100 reps for triceps</strong> the next day.',
+            rules: [
+                'You can split it up: 50 bicep + 50 tricep reps in one day counts!',
+                'Or go all out: 100 bicep reps one day, 100 tricep reps the next',
+                'Alternate throughout the month',
+                'Track your daily totals on the leaderboard'
+            ]
+        },
+        // Add more months as needed
+    };
+    
+    const challenge = challenges[month];
+    
+    if (challenge) {
+        descriptionDiv.innerHTML = `
+            <h4>${challenge.title}</h4>
+            <p><strong>Goal:</strong> ${challenge.goal}</p>
+            <ul>
+                ${challenge.rules.map(rule => `<li>${rule}</li>`).join('')}
+            </ul>
+        `;
+    } else {
+        // Default message for months without defined challenges
+        descriptionDiv.innerHTML = `
+            <p>No specific challenge set for this month yet. Keep tracking your workouts!</p>
+        `;
+    }
+}
+
+function renderCalendar() {
+    const calendarDiv = document.getElementById('calendar');
+    const today = new Date();
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
+    
+    // Get first day of month and number of days
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay(); // 0 = Sunday
+    
+    // Get previous month's last days
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    
+    let html = '';
+    
+    // Day headers
+    const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    dayHeaders.forEach(day => {
+        html += `<div class="calendar-day-header">${day}</div>`;
+    });
+    
+    // Previous month's days (grayed out)
+    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+        const day = prevMonthLastDay - i;
+        html += `<div class="calendar-day other-month">${day}</div>`;
+    }
+    
+    // Current month's days
+    for (let day = 1; day <= daysInMonth; day++) {
+        const isToday = (year === today.getFullYear() && 
+                        month === today.getMonth() && 
+                        day === today.getDate());
+        
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const hasData = dailyWorkouts[dateStr] && (dailyWorkouts[dateStr].biceps > 0 || dailyWorkouts[dateStr].triceps > 0);
+        
+        const classes = ['calendar-day'];
+        if (isToday) classes.push('current-day');
+        if (hasData) classes.push('has-data');
+        
+        html += `<div class="${classes.join(' ')}" data-date="${dateStr}" onclick="openWorkoutModal('${dateStr}')">${day}</div>`;
+    }
+    
+    // Next month's days (to fill grid)
+    const totalCells = Math.ceil((startingDayOfWeek + daysInMonth) / 7) * 7;
+    const remainingCells = totalCells - (startingDayOfWeek + daysInMonth);
+    for (let day = 1; day <= remainingCells; day++) {
+        html += `<div class="calendar-day other-month">${day}</div>`;
+    }
+    
+    calendarDiv.innerHTML = html;
 }
 
 function navigateMonth(direction) {
@@ -398,57 +716,85 @@ function navigateMonth(direction) {
     
     currentMonth = newMonth;
     const monthKey = getMonthKey(currentMonth);
-    const savedData = localStorage.getItem(`challenges_${currentUser}_${monthKey}`);
+    const savedData = localStorage.getItem(`workouts_${currentUser}_${monthKey}`);
     
     if (savedData) {
-        challenges = JSON.parse(savedData);
+        dailyWorkouts = JSON.parse(savedData);
     } else {
-        challenges = [];
+        dailyWorkouts = {};
     }
     
     updateMonthDisplay();
-    renderChallenges();
     renderStats();
+    loadLeaderboardData();
 }
 
 // Leaderboard Management
 function loadLeaderboardData() {
-    const savedLeaderboard = localStorage.getItem('leaderboard_data');
-    if (savedLeaderboard) {
-        leaderboardData = JSON.parse(savedLeaderboard);
-    } else {
-        leaderboardData = [];
-    }
+    const monthKey = getMonthKey(currentMonth);
     
-    // Ensure current user is in leaderboard
-    updateLeaderboardScore();
+    if (database) {
+        // Load from Firebase
+        database.ref(`leaderboard/${monthKey}`).once('value', (snapshot) => {
+            leaderboardData = [];
+            const data = snapshot.val();
+            
+            if (data) {
+                Object.values(data).forEach(entry => {
+                    leaderboardData.push(entry);
+                });
+            }
+            
+            renderLeaderboard();
+        });
+    } else {
+        // Fallback to local only
+        leaderboardData = [];
+        const allUsers = JSON.parse(localStorage.getItem('all_users') || '[]');
+        
+        allUsers.forEach(username => {
+            const userDataKey = `workouts_${username}_${monthKey}`;
+            const userData = localStorage.getItem(userDataKey);
+            
+            if (userData) {
+                const userWorkouts = JSON.parse(userData);
+                let totalScore = 0;
+                let bicepsTotal = 0;
+                let tricepsTotal = 0;
+                
+                Object.values(userWorkouts).forEach(day => {
+                    bicepsTotal += (day.biceps || 0);
+                    tricepsTotal += (day.triceps || 0);
+                    totalScore += (day.biceps || 0) + (day.triceps || 0);
+                });
+                
+                leaderboardData.push({
+                    username: username,
+                    score: totalScore,
+                    biceps: bicepsTotal,
+                    triceps: tricepsTotal,
+                    workoutDays: Object.keys(userWorkouts).length,
+                    month: monthKey
+                });
+            } else if (username === currentUser) {
+                leaderboardData.push({
+                    username: username,
+                    score: 0,
+                    biceps: 0,
+                    triceps: 0,
+                    workoutDays: 0,
+                    month: monthKey
+                });
+            }
+        });
+        
+        renderLeaderboard();
+    }
 }
 
 function updateLeaderboardScore() {
-    const monthKey = getMonthKey(currentMonth);
-    const totalScore = challenges.reduce((sum, c) => sum + c.count, 0);
-    
-    // Find or create user entry
-    let userEntry = leaderboardData.find(entry => 
-        entry.username === currentUser && entry.month === monthKey
-    );
-    
-    if (userEntry) {
-        userEntry.score = totalScore;
-        userEntry.challenges = challenges.length;
-        userEntry.lastUpdate = Date.now();
-    } else {
-        leaderboardData.push({
-            username: currentUser,
-            score: totalScore,
-            challenges: challenges.length,
-            month: monthKey,
-            lastUpdate: Date.now()
-        });
-    }
-    
-    localStorage.setItem('leaderboard_data', JSON.stringify(leaderboardData));
-    renderLeaderboard();
+    // Always reload leaderboard data after saving
+    loadLeaderboardData();
 }
 
 function renderLeaderboard() {
@@ -469,11 +815,16 @@ function renderLeaderboard() {
         const rank = index + 1;
         const isCurrentUser = entry.username === currentUser;
         const rankClass = `rank-${rank}`;
+        const biceps = entry.biceps || 0;
+        const triceps = entry.triceps || 0;
         
         return `
             <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
                 <div class="leaderboard-rank ${rank <= 3 ? rankClass : ''}">${rank}</div>
-                <div class="leaderboard-name">${escapeHtml(entry.username)}${isCurrentUser ? ' (You)' : ''}</div>
+                <div class="leaderboard-info">
+                    <div class="leaderboard-name">${escapeHtml(entry.username)}${isCurrentUser ? ' (You)' : ''}</div>
+                    <div class="leaderboard-details">💪 ${biceps} biceps | 💪 ${triceps} triceps</div>
+                </div>
                 <div class="leaderboard-score">${entry.score}</div>
             </div>
         `;
@@ -526,35 +877,39 @@ function showShareDialog(data) {
 }
 
 function importData() {
-    const code = prompt('Paste your friend\'s progress code:');
+    const code = prompt('Paste your friend\'s score code:');
     
     if (!code) return;
     
     try {
         const dataString = atob(code.trim());
-        const importedData = JSON.parse(dataString);
+        const importedEntry = JSON.parse(dataString);
         
         // Validate data
-        if (!importedData.username || !importedData.month || typeof importedData.score !== 'number') {
+        if (!importedEntry.username || !importedEntry.month || typeof importedEntry.score !== 'number') {
             throw new Error('Invalid data format');
         }
         
+        // Get existing imported data
+        const importedData = JSON.parse(localStorage.getItem('imported_leaderboard') || '[]');
+        
         // Check if already exists
-        const existingIndex = leaderboardData.findIndex(entry => 
-            entry.username === importedData.username && entry.month === importedData.month
+        const existingIndex = importedData.findIndex(entry => 
+            entry.username === importedEntry.username && entry.month === importedEntry.month
         );
         
         if (existingIndex >= 0) {
             // Update existing entry
-            leaderboardData[existingIndex] = importedData;
-            alert(`✅ Updated ${importedData.username}'s progress!`);
+            importedData[existingIndex] = importedEntry;
+            alert(`✅ Updated ${importedEntry.username}'s score!`);
         } else {
             // Add new entry
-            leaderboardData.push(importedData);
-            alert(`✅ Added ${importedData.username} to the leaderboard!`);
+            importedData.push(importedEntry);
+            alert(`✅ Added ${importedEntry.username} to the leaderboard!`);
         }
         
-        localStorage.setItem('leaderboard_data', JSON.stringify(leaderboardData));
+        localStorage.setItem('imported_leaderboard', JSON.stringify(importedData));
+        loadLeaderboardData();
         renderLeaderboard();
         
     } catch (err) {
