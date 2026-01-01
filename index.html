@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="description" content="Monthly Workout Challenge Tracker">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Workout Tracker">
+    
+    <title>Workout Challenge Tracker</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen active">
+        <div class="container">
+            <div class="login-box">
+                <h1>💪 Workout Tracker</h1>
+                <p class="subtitle">Monthly Challenge</p>
+                
+                <form id="loginForm">
+                    <div class="input-group">
+                        <label for="username">Your Name</label>
+                        <input type="text" id="username" required placeholder="Enter your name" autocomplete="off">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="password" required placeholder="Enter group password">
+                            <button type="button" id="togglePassword" class="toggle-password" aria-label="Toggle password visibility">
+                                <span class="eye-icon">👁️</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary">Login</button>
+                    <p id="loginError" class="error-message"></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="appScreen" class="screen">
+        <div class="header">
+            <h2 id="welcomeUser">Welcome!</h2>
+            <button id="logoutBtn" class="btn-logout">Logout</button>
+        </div>
+        
+        <div class="month-nav">
+            <button id="prevMonth" class="nav-btn">‹</button>
+            <div class="month-info">
+                <div id="currentMonth" class="month-display"></div>
+                <div id="currentDate" class="date-display"></div>
+            </div>
+            <button id="nextMonth" class="nav-btn">›</button>
+        </div>
+        
+        <div class="container">
+            <div class="leaderboard-section">
+                <h3>🏆 Leaderboard</h3>
+                <div id="leaderboardList" class="leaderboard-list">
+                    <!-- Leaderboard will be populated here -->
+                </div>
+                <button id="shareDataBtn" class="btn-share">📤 Share My Progress</button>
+                <button id="importDataBtn" class="btn-share">📥 Import Friend's Data</button>
+            </div>
+            
+            <div class="challenge-section">
+                <h3>Your Challenges</h3>
+                
+                <div id="challengesList">
+                    <!-- Challenges will be dynamically added here -->
+                </div>
+                
+                <button id="addChallengeBtn" class="btn-secondary">+ Add New Challenge</button>
+            </div>
+            
+            <div class="stats-section">
+                <h3>Your Stats</h3>
+                <div id="statsDisplay">
+                    <!-- Stats will be displayed here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Challenge Modal -->
+    <div id="addChallengeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>New Challenge</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="addChallengeForm">
+                <div class="input-group">
+                    <label for="challengeName">Challenge Name</label>
+                    <input type="text" id="challengeName" required placeholder="e.g., Push-ups">
+                </div>
+                
+                <div class="input-group">
+                    <label for="challengeGoal">Daily Goal (optional)</label>
+                    <input type="number" id="challengeGoal" placeholder="e.g., 50">
+                </div>
+                
+                <button type="submit" class="btn-primary">Create Challenge</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

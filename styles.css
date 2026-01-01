@@ -1,0 +1,622 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #4CAF50;
+    --primary-dark: #388E3C;
+    --secondary-color: #2196F3;
+    --danger-color: #f44336;
+    --text-dark: #333;
+    --text-light: #666;
+    --bg-light: #f5f5f5;
+    --white: #ffffff;
+    --shadow: 0 2px 8px rgba(0,0,0,0.1);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: var(--text-dark);
+    overflow-x: hidden;
+}
+
+.screen {
+    display: none;
+    min-height: 100vh;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+}
+
+.screen.active {
+    display: block;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Login Screen */
+#loginScreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-box {
+    background: var(--white);
+    padding: 40px 30px;
+    border-radius: 20px;
+    box-shadow: var(--shadow-lg);
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-box h1 {
+    text-align: center;
+    color: var(--primary-color);
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    text-align: center;
+    color: var(--text-light);
+    margin-bottom: 30px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-dark);
+    font-weight: 500;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper input {
+    flex: 1;
+    padding-right: 45px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s;
+}
+
+.toggle-password:hover {
+    opacity: 0.7;
+}
+
+.toggle-password:active {
+    transform: scale(0.95);
+}
+
+.eye-icon {
+    user-select: none;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary-color);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-primary:active {
+    transform: scale(0.98);
+}
+
+.error-message {
+    color: var(--danger-color);
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+/* App Screen */
+#appScreen {
+    background: var(--bg-light);
+    overflow-y: auto;
+}
+
+.header {
+    background: var(--white);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header h2 {
+    color: var(--primary-color);
+    font-size: 1.5rem;
+}
+
+.btn-logout {
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--danger-color);
+    border: 2px solid var(--danger-color);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.btn-logout:hover {
+    background: var(--danger-color);
+    color: var(--white);
+}
+
+/* Month Navigation */
+.month-nav {
+    background: var(--white);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+}
+
+.month-info {
+    flex: 1;
+    text-align: center;
+}
+
+.month-display {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 5px;
+}
+
+.date-display {
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.nav-btn {
+    background: var(--primary-color);
+    color: var(--white);
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-btn:hover {
+    background: var(--primary-dark);
+    transform: scale(1.1);
+}
+
+.nav-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Leaderboard Section */
+.leaderboard-section {
+    margin-top: 20px;
+    margin-bottom: 30px;
+}
+
+.leaderboard-section h3 {
+    color: var(--text-dark);
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.leaderboard-list {
+    background: var(--white);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    margin-bottom: 15px;
+}
+
+.leaderboard-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s;
+}
+
+.leaderboard-item:last-child {
+    border-bottom: none;
+}
+
+.leaderboard-item:hover {
+    background: #f9f9f9;
+}
+
+.leaderboard-item.current-user {
+    background: #e8f5e9;
+    font-weight: 600;
+}
+
+.leaderboard-rank {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--text-light);
+    width: 40px;
+    text-align: center;
+}
+
+.leaderboard-rank.rank-1 {
+    color: #FFD700;
+}
+
+.leaderboard-rank.rank-2 {
+    color: #C0C0C0;
+}
+
+.leaderboard-rank.rank-3 {
+    color: #CD7F32;
+}
+
+.leaderboard-name {
+    flex: 1;
+    font-size: 1rem;
+}
+
+.leaderboard-score {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.btn-share {
+    width: 100%;
+    padding: 12px;
+    background: var(--white);
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-bottom: 10px;
+}
+
+.btn-share:hover {
+    background: var(--primary-color);
+    color: var(--white);
+}
+
+/* Challenge Section */
+.challenge-section {
+    margin-top: 20px;
+}
+
+.challenge-section h3,
+.stats-section h3 {
+    color: var(--text-dark);
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.challenge-card {
+    background: var(--white);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    box-shadow: var(--shadow);
+}
+
+.challenge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.challenge-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.delete-challenge {
+    background: transparent;
+    border: none;
+    color: var(--danger-color);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 5px 10px;
+}
+
+.challenge-count {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.count-display {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.goal-display {
+    color: var(--text-light);
+    margin-top: 5px;
+}
+
+.challenge-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.btn-counter {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-minus {
+    background: #ff9800;
+    color: var(--white);
+}
+
+.btn-minus:hover {
+    background: #f57c00;
+}
+
+.btn-plus {
+    background: var(--primary-color);
+    color: var(--white);
+}
+
+.btn-plus:hover {
+    background: var(--primary-dark);
+}
+
+.btn-reset {
+    background: var(--danger-color);
+    color: var(--white);
+    padding: 8px 16px;
+    font-size: 0.9rem;
+}
+
+.btn-reset:hover {
+    background: #d32f2f;
+}
+
+.btn-secondary {
+    width: 100%;
+    padding: 14px;
+    background: var(--secondary-color);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-top: 10px;
+}
+
+.btn-secondary:hover {
+    background: #1976D2;
+}
+
+/* Stats Section */
+.stats-section {
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+}
+
+.stat-card {
+    background: var(--white);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    text-align: center;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    color: var(--text-light);
+    margin-top: 5px;
+    font-size: 0.9rem;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--white);
+    padding: 30px;
+    border-radius: 16px;
+    max-width: 400px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    color: var(--text-dark);
+}
+
+.close-modal {
+    background: transparent;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: var(--text-light);
+    padding: 0;
+    width: 30px;
+    height: 30px;
+}
+
+.close-modal:hover {
+    color: var(--text-dark);
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .login-box {
+        padding: 30px 20px;
+    }
+    
+    .container {
+        padding: 15px;
+    }
+    
+    .count-display {
+        font-size: 2.5rem;
+    }
+    
+    .btn-counter {
+        padding: 10px 20px;
+        font-size: 1rem;
+    }
+    
+    .month-nav {
+        padding: 15px;
+    }
+    
+    .month-display {
+        font-size: 1.2rem;
+    }
+    
+    .leaderboard-rank {
+        width: 35px;
+        font-size: 1rem;
+    }
+    
+    .leaderboard-score {
+        font-size: 1rem;
+    }
+}
+
+/* PWA Install Prompt */
+.install-prompt {
+    background: var(--white);
+    padding: 15px;
+    border-radius: 8px;
+    margin: 20px;
+    box-shadow: var(--shadow);
+    display: none;
+    align-items: center;
+    gap: 15px;
+}
+
+.install-prompt.show {
+    display: flex;
+}
+
+.install-prompt button {
+    padding: 10px 20px;
+    background: var(--primary-color);
+    color: var(--white);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+}

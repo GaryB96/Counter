@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .preview {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        img {
+            max-width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #388E3C;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .instructions ol {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Icon Generator</h1>
+        
+        <div class="instructions">
+            <h3>How to create your app icons:</h3>
+            <ol>
+                <li>Click the buttons below to download the icons</li>
+                <li>Right-click on each canvas and "Save image as..."</li>
+                <li>Save as <strong>icon-192.png</strong> and <strong>icon-512.png</strong></li>
+                <li>Place the PNG files in your project root folder</li>
+            </ol>
+            <p><strong>Or use an online tool:</strong> Upload <code>icon.svg</code> to <a href="https://realfavicongenerator.net/" target="_blank">realfavicongenerator.net</a> or similar service.</p>
+        </div>
+        
+        <div class="preview">
+            <h3>192x192 Icon</h3>
+            <canvas id="canvas192" width="192" height="192"></canvas>
+            <br>
+            <button onclick="downloadIcon(192)">Download 192x192</button>
+        </div>
+        
+        <div class="preview">
+            <h3>512x512 Icon</h3>
+            <canvas id="canvas512" width="512" height="512"></canvas>
+            <br>
+            <button onclick="downloadIcon(512)">Download 512x512</button>
+        </div>
+    </div>
+
+    <script>
+        // Load and render SVG to canvas
+        function loadSVG() {
+            fetch('icon.svg')
+                .then(response => response.text())
+                .then(svgData => {
+                    renderToCanvas('canvas192', svgData, 192);
+                    renderToCanvas('canvas512', svgData, 512);
+                })
+                .catch(err => {
+                    console.error('Error loading SVG:', err);
+                    createPlaceholderIcons();
+                });
+        }
+
+        function renderToCanvas(canvasId, svgData, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Create image from SVG
+            const img = new Image();
+            const blob = new Blob([svgData], {type: 'image/svg+xml'});
+            const url = URL.createObjectURL(blob);
+            
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, size, size);
+                URL.revokeObjectURL(url);
+            };
+            
+            img.src = url;
+        }
+
+        function createPlaceholderIcons() {
+            // Create placeholder icons if SVG fails to load
+            drawPlaceholder('canvas192', 192);
+            drawPlaceholder('canvas512', 512);
+        }
+
+        function drawPlaceholder(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#667eea');
+            gradient.addColorStop(1, '#764ba2');
+            
+            // Draw rounded rectangle
+            ctx.fillStyle = gradient;
+            roundRect(ctx, 0, 0, size, size, size * 0.2);
+            ctx.fill();
+            
+            // Draw icon
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size * 0.5}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('💪', size / 2, size / 2);
+        }
+
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function downloadIcon(size) {
+            const canvas = document.getElementById(`canvas${size}`);
+            const link = document.createElement('a');
+            link.download = `icon-${size}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', loadSVG);
+    </script>
+</body>
+</html>
